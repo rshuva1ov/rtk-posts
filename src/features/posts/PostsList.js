@@ -1,36 +1,39 @@
-import React from 'react';
-import { useSelector } from "react-redux";
-import { selectAllPosts } from "./postsSlice";
-import PostsAuthor from './PostAuthor';
-import TimeAgo from './TimeAgo';
-import ReactionButtons from './ReactionButtons';
+import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from "react-redux";
+import { selectAllPosts, getPostsStatus, getPostsError, fetchPosts } from "./postsSlice";
+import PostsExcerpt from './PostsExcerpt';
+
 
 const PostsList = () => {
-    const posts = useSelector(selectAllPosts)
+    const dispatch = useDispatch();
+    const posts = useSelector(selectAllPosts);
+    const postsStatus = useSelector(getPostsStatus);
+    const postsError = useSelector(getPostsError);
 
-    const orderedPosts = structuredClone(posts).sort((a, b) => b.date.localeCompare(a.date));
 
-    const renderPosts = orderedPosts.map(post => (
-        <article key={post.id}>
-            <h3>
-                {post.title}
-                <p>
-                    {post.content.substring(0, 100)}
-                </p>
-                <p className='postCredit'>
-                    <PostsAuthor userId={post.userId} />
-                    <TimeAgo timestamp={post.date} />
-                </p>
-            </h3>
-            <ReactionButtons post={post} />
-        </article>
-    ))
+    useEffect(() => {
+        console.log('new one');
+        if (postsStatus == 'idle') {
+            dispatch(fetchPosts());
+        }
+    }, [postsStatus, dispatch])
+
+    let content;
+    if (postsStatus === 'loading') {
+        content = <p>"Loading..."</p>
+    } else if (postsStatus === 'succeeded') {
+        const orderedPosts = posts.slice().sort((a, b) => b.date.localeCompare(a.date))
+        content = orderedPosts.map(post => <PostsExcerpt key={post.id} post={post} />)
+    } else if (postsStatus === 'failed') {
+        content = <p>{postsError}</p>
+    }
+
     return (
         <section>
             <h2>
                 Posts
             </h2>
-            {renderPosts}
+            {content}
         </section>
     );
 };
