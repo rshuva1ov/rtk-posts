@@ -22,8 +22,29 @@ export const fetchPosts = createAsyncThunk('posts/fetchPosts', async () => {
 export const addNewPost = createAsyncThunk('post/addNewPost', async (initialPost) => {
     try {
         const response = await axios.post(POST_URL, initialPost)
-        console.log(response);
         return response.data;
+    } catch (err) {
+        return err.message;
+    }
+});
+
+export const updatePost = createAsyncThunk('post/updatePost', async (initialPost) => {
+    const { id } = initialPost;
+    try {
+        const response = await axios.put(`${POST_URL}/${id}`, initialPost)
+        return response.data;
+    } catch (err) {
+        // return err.message;
+        return initialPost
+    }
+});
+
+export const deletePost = createAsyncThunk('post/deletePost', async (initialPost) => {
+    const { id } = initialPost;
+    try {
+        const response = await axios.delete(`${POST_URL}/${id}`, initialPost)
+        if (response?.status === 200) return initialPost;
+        return `${response.status}: ${response.data}`;
     } catch (err) {
         return err.message;
     }
@@ -103,12 +124,36 @@ const postsSlice = createSlice({
                 console.log(action.payload);
                 state.posts.push(action.payload);
             })
+            .addCase(updatePost.fulfilled, (state, action) => {
+                if (!action.payload?.id) {
+                    console.log('Update couldn`t complete');
+                    console.log(action.payload);
+                    return;
+                }
+                const { id } = action.payload;
+                action.payload.date = new Date().toISOString();
+                const posts = state.posts.filter(post => post.id !== id);
+                state.posts = [...posts, action.payload];
+            })
+            .addCase(deletePost.fulfilled, (state, action) => {
+                if (!action.payload?.id) {
+                    console.log('Delete couldn`t complete');
+                    console.log(action.payload);
+                    return;
+                }
+                const { id } = action.payload;
+                const posts = state.posts.filter(post => post.id !== id);
+                state.posts = posts;
+            })
     }
 })
 
 export const selectAllPosts = (state) => state.posts.posts;
 export const getPostsStatus = (state) => state.posts.status;
 export const getPostsError = (state) => state.posts.error;
+
+export const selectPostById = (state, postId) =>
+    state.posts.posts.find(post => post.id === postId);
 
 export const { postAdded, reactionsAdded } = postsSlice.actions
 
