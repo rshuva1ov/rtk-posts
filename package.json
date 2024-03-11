@@ -1,16 +1,16 @@
 {
-  "name": "rtk-posts",
+  "name": "07_lesson",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
     "@reduxjs/toolkit": "^1.8.0",
-    "axios": "^1.6.7",
-    "date-fns": "^3.3.1",
+    "axios": "^0.26.1",
+    "date-fns": "^2.28.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-redux": "^7.2.6",
-    "react-router-dom": "^6.22.0",
-    "react-scripts": "^5.0.1"
+    "react-router-dom": "^6.3.0",
+    "react-scripts": "5.0.0"
   },
   "scripts": {
     "start": "react-scripts start",

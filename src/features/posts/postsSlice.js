@@ -1,78 +1,69 @@
+
 import {
     createSlice,
-    createSelector,
     createAsyncThunk,
+    createSelector,
     createEntityAdapter
 } from "@reduxjs/toolkit";
 import { sub } from 'date-fns';
-
 import axios from "axios";
 
-export const POST_URL = 'https://jsonplaceholder.typicode.com/posts';
+const POSTS_URL = 'https://jsonplaceholder.typicode.com/posts';
 
 const postsAdapter = createEntityAdapter({
     sortComparer: (a, b) => b.date.localeCompare(a.date)
 })
 
 const initialState = postsAdapter.getInitialState({
-    status: 'idle', //''idle | 'loading' | 'succeeded' | 'failed'
+    status: 'idle', //'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
-    count: 0,
+    count: 0
 })
 
 export const fetchPosts = createAsyncThunk('posts/fetchPosts', async () => {
-    try {
-        const response = await axios.get(POST_URL)
-        return [...response.data]
-    } catch (err) {
-        return err.message;
-    }
-});
+    const response = await axios.get(POSTS_URL)
+    return response.data
+})
 
-export const addNewPost = createAsyncThunk('post/addNewPost', async (initialPost) => {
-    try {
-        const response = await axios.post(POST_URL, initialPost)
-        return response.data;
-    } catch (err) {
-        return err.message;
-    }
-});
+export const addNewPost = createAsyncThunk('posts/addNewPost', async (initialPost) => {
+    const response = await axios.post(POSTS_URL, initialPost)
+    return response.data
+})
 
-export const updatePost = createAsyncThunk('post/updatePost', async (initialPost) => {
+export const updatePost = createAsyncThunk('posts/updatePost', async (initialPost) => {
     const { id } = initialPost;
+    // try-catch block only for development/testing with fake API
+    // otherwise, remove try-catch and add updatePost.rejected case
     try {
-        const response = await axios.put(`${POST_URL}/${id}`, initialPost)
-        return response.data;
+        const response = await axios.put(`${POSTS_URL}/${id}`, initialPost)
+        return response.data
     } catch (err) {
-        return err.message;
-        // return initialPost
+        //return err.message;
+        return initialPost; // only for testing Redux!
     }
-});
+})
 
-export const deletePost = createAsyncThunk('post/deletePost', async (initialPost) => {
+export const deletePost = createAsyncThunk('posts/deletePost', async (initialPost) => {
     const { id } = initialPost;
-    try {
-        const response = await axios.delete(`${POST_URL}/${id}`, initialPost)
-        if (response?.status === 200) return initialPost;
-        return `${response.status}: ${response.data}`;
-    } catch (err) {
-        return err.message;
-    }
-});
+
+    const response = await axios.delete(`${POSTS_URL}/${id}`)
+    if (response?.status === 200) return initialPost;
+    return `${response?.status}: ${response?.statusText}`;
+})
 
 const postsSlice = createSlice({
     name: 'posts',
     initialState,
     reducers: {
-        reactionsAdded(state, action) {
+        reactionAdded(state, action) {
             const { postId, reaction } = action.payload
-            const existingPost = state.entities[postId];
+            const existingPost = state.entities[postId]
             if (existingPost) {
                 existingPost.reactions[reaction]++
             }
         },
         increaseCount(state, action) {
-            state.count = state.count + 1;
+            state.count = state.count + 1
         }
     },
     extraReducers(builder) {
@@ -82,6 +73,7 @@ const postsSlice = createSlice({
             })
             .addCase(fetchPosts.fulfilled, (state, action) => {
                 state.status = 'succeeded'
+                // Adding date and reactions
                 let min = 1;
                 const loadedPosts = action.payload.map(post => {
                     post.date = sub(new Date(), { minutes: min++ }).toISOString();
@@ -93,16 +85,29 @@ const postsSlice = createSlice({
                         coffee: 0
                     }
                     return post;
-                })
+                });
 
-                postsAdapter.upsertMany(state, loadedPosts);
+                // Add any fetched posts to the array
+                postsAdapter.upsertMany(state, loadedPosts)
             })
             .addCase(fetchPosts.rejected, (state, action) => {
                 state.status = 'failed'
-                state.error = action.error.message;
+                state.error = action.error.message
             })
             .addCase(addNewPost.fulfilled, (state, action) => {
-                action.payload.userId = Number(action.payload.userId);
+                // Fix for API post IDs:
+                // Creating sortedPosts & assigning the id 
+                // would be not be needed if the fake API 
+                // returned accurate new post IDs
+                const sortedPosts = state.posts.sort((a, b) => {
+                    if (a.id > b.id) return 1
+                    if (a.id < b.id) return -1
+                    return 0
+                })
+                action.payload.id = sortedPosts[sortedPosts.length - 1].id + 1;
+                // End fix for fake API post IDs 
+
+                action.payload.userId = Number(action.payload.userId)
                 action.payload.date = new Date().toISOString();
                 action.payload.reactions = {
                     thumbsUp: 0,
@@ -111,25 +116,26 @@ const postsSlice = createSlice({
                     rocket: 0,
                     coffee: 0
                 }
-                postsAdapter.addOne(state, action.payload);
+                console.log(action.payload)
+                postsAdapter.addOne(state, action.payload)
             })
             .addCase(updatePost.fulfilled, (state, action) => {
                 if (!action.payload?.id) {
-                    console.log('Update couldn`t complete');
-                    console.log(action.payload);
+                    console.log('Update could not complete')
+                    console.log(action.payload)
                     return;
                 }
                 action.payload.date = new Date().toISOString();
-                postsAdapter.upsertOne(state, action.payload);
+                postsAdapter.upsertOne(state, action.payload)
             })
             .addCase(deletePost.fulfilled, (state, action) => {
                 if (!action.payload?.id) {
-                    console.log('Delete couldn`t complete');
-                    console.log(action.payload);
+                    console.log('Delete could not complete')
+                    console.log(action.payload)
                     return;
                 }
                 const { id } = action.payload;
-                postsAdapter.removeOne(state, id);
+                postsAdapter.removeOne(state, id)
             })
     }
 })
@@ -142,15 +148,16 @@ export const {
     // Pass in a selector that returns the posts slice of state
 } = postsAdapter.getSelectors(state => state.posts)
 
+
 export const getPostsStatus = (state) => state.posts.status;
 export const getPostsError = (state) => state.posts.error;
 export const getCount = (state) => state.posts.count;
 
-// memoized selector give us new data every time when dependence's has changed
 export const selectPostsByUser = createSelector(
-    [selectAllPosts, (state, userId) => userId], (posts, userId) => posts.filter(post => post.userId === userId)
+    [selectAllPosts, (state, userId) => userId],
+    (posts, userId) => posts.filter(post => post.userId === userId)
 )
 
-export const { increaseCount, reactionsAdded } = postsSlice.actions
+export const { increaseCount, reactionAdded } = postsSlice.actions
 
 export default postsSlice.reducer

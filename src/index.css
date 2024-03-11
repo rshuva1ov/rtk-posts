@@ -37,7 +37,6 @@ header {
 nav {
   display: flex;
   justify-content: flex-end;
-  align-self: center
 }
 
 nav ul {
@@ -49,14 +48,12 @@ nav ul li {
   margin-right: 1rem;
 }
 
-nav a,
-nav a:visited {
+nav a, nav a:visited {
   color: #fff;
   text-decoration: none;
 }
 
-nav a:hover,
-nav a:focus {
+nav a:hover, nav a:focus {
   text-decoration: underline;
 }
 
@@ -76,13 +73,8 @@ article {
   padding: 1em;
 }
 
-a {
-  text-decoration: none;
-}
-
 h1 {
   font-size: 3.5rem;
-  color: white;
 }
 
 h2 {
@@ -109,13 +101,13 @@ textarea {
   font-size: 1rem;
 }
 
-.postCredit a,
+.postCredit a, 
 .postCredit a:visited {
   margin-right: 0.5rem;
   color: black;
 }
 
-.postCredit a:hover,
+.postCredit a:hover, 
 .postCredit a:focus {
   color: hsla(0, 0%, 0%, 0.75);
 }
