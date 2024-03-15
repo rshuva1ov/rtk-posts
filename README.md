@@ -1,5 +1,5 @@
-## Тестовый проект для работы с redux-toolkit и rtk-query
-Блог Redux будет полностью интегрирован с RTK Query и адаптером сущностей для нормализации состояния, normalized state и optimistic updates для немедленной реакции пользовательского интерфейса.
+## Блог Redux для работы с redux-toolkit и rtk-query
+Блог Redux полностью интегрирован с RTK Query и адаптером сущностей для нормализации состояния, normalized state и optimistic updates для немедленной реакции пользовательского интерфейса.
 
 ### Available Scripts:
 
