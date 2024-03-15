@@ -1,4 +1,3 @@
-
 import {
     createSelector,
     createEntityAdapter
@@ -6,16 +5,11 @@ import {
 import { sub } from 'date-fns';
 import { apiSlice } from "../api/apiSlice";
 
-
 const postsAdapter = createEntityAdapter({
     sortComparer: (a, b) => b.date.localeCompare(a.date)
 })
 
-const initialState = postsAdapter.getInitialState({
-    status: 'idle', //'idle' | 'loading' | 'succeeded' | 'failed'
-    error: null,
-    count: 0
-})
+const initialState = postsAdapter.getInitialState()
 
 export const extendedApiSlice = apiSlice.injectEndpoints({
     endpoints: builder => ({
@@ -37,11 +31,11 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
                 return postsAdapter.setAll(initialState, loadedPosts)
             },
             providesTags: (result, error, arg) => [
-                { type: 'Post', id: 'LIST' },
+                { type: 'Post', id: "LIST" },
                 ...result.ids.map(id => ({ type: 'Post', id }))
             ]
         }),
-        getPostsByUserID: builder.query({
+        getPostsByUserId: builder.query({
             query: id => `/posts/?userId=${id}`,
             transformResponse: responseData => {
                 let min = 1;
@@ -59,7 +53,6 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
                 return postsAdapter.setAll(initialState, loadedPosts)
             },
             providesTags: (result, error, arg) => [
-                { type: 'Post', id: 'LIST' },
                 ...result.ids.map(id => ({ type: 'Post', id }))
             ]
         }),
@@ -90,7 +83,7 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
                 method: 'PUT',
                 body: {
                     ...initialPost,
-                    date: new Date().toISOString(),
+                    date: new Date().toISOString()
                 }
             }),
             invalidatesTags: (result, error, arg) => [
@@ -107,20 +100,49 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
                 { type: 'Post', id: arg.id }
             ]
         }),
+        addReaction: builder.mutation({
+            query: ({ postId, reactions }) => ({
+                url: `posts/${postId}`,
+                method: 'PATCH',
+                // In a real app, we'd probably need to base this on user ID somehow
+                // so that a user can't do the same reaction more than once
+                body: { reactions }
+            }),
+            async onQueryStarted({ postId, reactions }, { dispatch, queryFulfilled }) {
+                // `updateQueryData` requires the endpoint name and cache key arguments,
+                // so it knows which piece of cache state to update
+                const patchResult = dispatch(
+                    extendedApiSlice.util.updateQueryData('getPosts', undefined, draft => {
+                        // The `draft` is Immer-wrapped and can be "mutated" like in createSlice
+                        const post = draft.entities[postId]
+                        if (post) post.reactions = reactions
+                    })
+                )
+                try {
+                    await queryFulfilled
+                } catch {
+                    patchResult.undo()
+                }
+            }
+        })
     })
 })
 
 export const {
-    useGetPostQuery,
-    useGetPostByUserIdQuery,
+    useGetPostsQuery,
+    useGetPostsByUserIdQuery,
     useAddNewPostMutation,
     useUpdatePostMutation,
     useDeletePostMutation,
-} = extendedApiSlice;
+    useAddReactionMutation
+} = extendedApiSlice
 
-export const selectPostsResult = extendedApiSlice.endpoints.getPosts.select();
 
-// create memoized selector
+
+// returns the query result object
+export const selectPostsResult = extendedApiSlice.endpoints.getPosts.select()
+
+// Creates memoized selector
 const selectPostsData = createSelector(
     selectPostsResult,
     postsResult => postsResult.data // normalized state object with ids & entities
